@@ -14,14 +14,16 @@ func main() {
 
 	fmt.Println("Server iniciado. Escuchando en: 0.0.0.0:8000")
 
-	conn, err := listener.Accept()
-	if err != nil {
-		log.Panicln(err.Error())
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Panicln(err.Error())
+			continue
+		}
+		readBuff := make([]byte, 1024)
+		conn.Read(readBuff)
+		fmt.Println(string(readBuff))
+
+		conn.Write([]byte("pong"))
 	}
-
-	readBuff := make([]byte, 1024)
-	conn.Read(readBuff)
-	fmt.Println(string(readBuff))
-
-	conn.Write([]byte("pong"))
 }

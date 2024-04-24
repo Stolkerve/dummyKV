@@ -1,30 +1,25 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/gob"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 
 	"github.com/Stolkerve/dummyKV/internal"
 )
 
-func main() {
-	gob.Register([]internal.Message{})
-
-	conn, err := net.Dial("tcp", "127.0.0.1:8000")
-	if err != nil {
-		log.Panicln(err)
-	}
-
+func SendArgs(conn net.Conn, cliArgs []string) {
 	// Enviar lista de argumentos al servidor
-	cliArgs := os.Args[1:]
 	args := make([]internal.Message, len(cliArgs))
 	for i := 0; i < len(cliArgs); i++ {
 		args[i] = internal.NewMessage(internal.MsgTypeString, cliArgs[i])
 	}
+
 	argsMsg := internal.NewMessage(internal.MsgTypeArray, args)
 	argsMsgBuf, err := internal.EncodeMsg(argsMsg)
 	if err != nil {
@@ -55,5 +50,28 @@ func main() {
 		fmt.Printf("ERROR: %s\n", respMsg.Value.(string))
 	case internal.MsgTypeNull:
 		fmt.Println("null")
+	}
+}
+
+func main() {
+	gob.Register([]internal.Message{})
+
+	conn, err := net.Dial("tcp", "127.0.0.1:8000")
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	cliArgs := os.Args[1:]
+
+	// RELP mode
+	if len(cliArgs) == 0 {
+		scanner := bufio.NewScanner(os.Stdin)
+		for {
+			fmt.Print("> ")
+			scanner.Scan()
+			SendArgs(conn, strings.Fields(scanner.Text()))
+		}
+	} else {
+		SendArgs(conn, cliArgs)
 	}
 }

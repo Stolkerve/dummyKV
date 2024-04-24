@@ -34,6 +34,7 @@ func main() {
 			port = ctx.String("port")
 			address = ctx.String("address")
 
+			internal.Listen(fmt.Sprintf("%s:%s", address, port))
 			return nil
 		},
 	}
@@ -41,6 +42,4 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-
-	internal.Listen(fmt.Sprintf("%s:%s", address, port))
 }

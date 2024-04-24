@@ -21,7 +21,8 @@ func (p *Peer) Start() {
 			break
 		}
 
-		payloadSize := uint16(payloadSizeBuf[0]) | uint16(payloadSizeBuf[0])<<8
+		payloadSize := uint16(payloadSizeBuf[0]) | uint16(payloadSizeBuf[1])<<8
+
 		msgBuf := make([]byte, payloadSize)
 		if _, err := p.conn.Read(msgBuf); err != nil {
 			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())

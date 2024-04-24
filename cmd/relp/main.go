@@ -35,7 +35,8 @@ func main() {
 	if _, err := conn.Read(payloadSizeBuf); err != nil {
 		log.Panicln(err.Error())
 	}
-	payloadSize := uint16(payloadSizeBuf[0]) | uint16(payloadSizeBuf[0])<<8
+	payloadSize := uint16(payloadSizeBuf[0]) | uint16(payloadSizeBuf[1])<<8
+
 	respMsgBuf := make([]byte, payloadSize)
 	if _, err := conn.Read(respMsgBuf); err != nil {
 		log.Panicln(err.Error())

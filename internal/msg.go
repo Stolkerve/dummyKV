@@ -54,7 +54,7 @@ func EncodeMsg(m Message) ([]byte, error) {
 
 	size := uint16(len(payloadBytes))
 	msgSizeBuf := []byte{
-		byte(size), byte(size >> 8),
+		byte(size & 0xFF), byte((size >> 8) & 0xFF),
 	}
 
 	// msgBuf

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/Stolkerve/dummyKV/internal"
 )
@@ -19,9 +20,12 @@ func main() {
 	}
 
 	// Enviar lista de argumentos al servidor
-	argsMsg := internal.NewMessage(internal.MsgTypeArray, []internal.Message{
-		internal.NewMessage(internal.MsgTypeString, "PING"),
-	})
+	cliArgs := os.Args[1:]
+	args := make([]internal.Message, len(cliArgs))
+	for i := 0; i < len(cliArgs); i++ {
+		args[i] = internal.NewMessage(internal.MsgTypeString, cliArgs[i])
+	}
+	argsMsg := internal.NewMessage(internal.MsgTypeArray, args)
 	argsMsgBuf, err := internal.EncodeMsg(argsMsg)
 	if err != nil {
 		log.Panicln(err.Error())
@@ -49,5 +53,7 @@ func main() {
 		fmt.Println(respMsg.Value.(string))
 	case internal.MsgTypeError:
 		fmt.Printf("ERROR: %s\n", respMsg.Value.(string))
+	case internal.MsgTypeNull:
+		fmt.Println("null")
 	}
 }

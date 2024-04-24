@@ -13,6 +13,7 @@ const (
 	MsgTypeString MsgType = iota + 1
 	MsgTypeError
 	MsgTypeInt
+	MsgTypeNull
 	MsgTypeArray
 )
 
@@ -26,6 +27,8 @@ func (m MsgType) String() string {
 		return "MsgTypeInt"
 	case MsgTypeArray:
 		return "MsgTypeArray"
+	case MsgTypeNull:
+		return "MsgTypeNull"
 	}
 	return ""
 }

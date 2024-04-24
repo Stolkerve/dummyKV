@@ -18,7 +18,7 @@ func (p *Peer) Start() {
 		payloadSizeBuf := []byte{0, 0}
 		if _, err := p.conn.Read(payloadSizeBuf); err != nil {
 			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())
-			break
+			return
 		}
 
 		payloadSize := uint16(payloadSizeBuf[0]) | uint16(payloadSizeBuf[1])<<8
@@ -26,32 +26,32 @@ func (p *Peer) Start() {
 		msgBuf := make([]byte, payloadSize)
 		if _, err := p.conn.Read(msgBuf); err != nil {
 			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())
-			break
+			return
 		}
 
 		msg, err := DecodeMsg(bytes.NewBuffer(msgBuf))
 		if err != nil {
 			p.WriteErr(fmt.Sprintf("Mensaje con formato invalido. %s", err.Error()))
-			break
+			return
 		}
 
 		// Verificar si el contenido
 		if msg.Type != MsgTypeArray {
 			p.WriteErr("Los mensajes hacia el servidor deben ser tipo array siempre")
-			break
+			return
 		}
 
+		// Leer los argumentos enviados por el cliente
 		args := msg.Value.([]Message)
-		if len(args) == 0 {
+		argsIter := NewArgsIterator(args)
+		command, err := argsIter.Next()
+		if err != nil {
 			p.WriteErr("La lista de argumentos esta vacia")
-			break
+			return
 		}
-
-		// Leer los comandos en los argumentos enviados por el cliente
-		command := args[0]
 		if command.Type != MsgTypeString {
 			p.WriteErr("El comando debe ser un string")
-			break
+			return
 		}
 
 		commandStr := strings.ToUpper(command.Value.(string))
@@ -60,6 +60,47 @@ func (p *Peer) Start() {
 		switch commandStr {
 		case PingCommand:
 			p.WriteMsg(NewMessage(MsgTypeString, "PONG"))
+		case EchoCommand:
+			text, err := argsIter.Next()
+			if err != nil {
+				p.WriteErr("El comando espera un argumento")
+				return
+			}
+			if text.Type != MsgTypeString {
+				p.WriteErr("El argumento debe ser un string")
+				return
+			}
+			p.WriteMsg(NewMessage(MsgTypeString, text.Value.(string)))
+		case GetCommand:
+			key, err := argsIter.Next()
+			if err != nil {
+				p.WriteErr("El comando espera un argumento")
+				return
+			}
+			if key.Type != MsgTypeString {
+				p.WriteErr("La llave debe ser un string")
+				return
+			}
+			p.WriteMsg(NewMessage(MsgTypeNull, nil))
+
+		case SetCommand:
+			key, err := argsIter.Next()
+			if err != nil {
+				p.WriteErr("El comando espera un argumento")
+				return
+			}
+			if key.Type != MsgTypeString {
+				p.WriteErr("La llave debe ser un string")
+				return
+			}
+			value, err := argsIter.Next()
+			if err != nil {
+				p.WriteErr("El segundo comando espera un argumento")
+				return
+			}
+			fmt.Printf("Llave: %s. Valor: %v\n", key.Value.(string), value.Value)
+			p.WriteMsg(NewMessage(MsgTypeString, "OK"))
+
 		default:
 			p.WriteErr(fmt.Sprintf("Comando %s desconocido", commandStr))
 		}

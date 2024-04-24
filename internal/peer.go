@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"strings"
 )
 
 type Peer struct {
@@ -13,6 +14,7 @@ type Peer struct {
 
 func (p *Peer) Start() {
 	for {
+		// Leer por mensajes del cliente
 		payloadSizeBuf := []byte{0, 0}
 		if _, err := p.conn.Read(payloadSizeBuf); err != nil {
 			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())
@@ -28,26 +30,50 @@ func (p *Peer) Start() {
 
 		msg, err := DecodeMsg(bytes.NewBuffer(msgBuf))
 		if err != nil {
-			msg := NewMessage(MsgTypeError, err.Error())
-			msgBuf, _ := EncodeMsg(msg)
-			p.conn.Write(msgBuf)
+			p.WriteErr(fmt.Sprintf("Mensaje con formato invalido. %s", err.Error()))
 			break
 		}
 
+		// Verificar si el contenido
 		if msg.Type != MsgTypeArray {
-			msg := NewMessage(MsgTypeError, "Los mensajes hacia el servidor deben ser tipo array siempre")
-			msgBuf, _ := EncodeMsg(msg)
-			p.conn.Write(msgBuf)
-		}
-		fmt.Println(msg.Value.([]Message))
-
-		respMsg := NewMessage(MsgTypeString, "PONG")
-		respMsgBuf, _ := EncodeMsg(respMsg)
-		if _, err := p.conn.Write(respMsgBuf); err != nil {
-			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())
+			p.WriteErr("Los mensajes hacia el servidor deben ser tipo array siempre")
 			break
+		}
+
+		args := msg.Value.([]Message)
+		if len(args) == 0 {
+			p.WriteErr("La lista de argumentos esta vacia")
+			break
+		}
+
+		// Leer los comandos en los argumentos enviados por el cliente
+		command := args[0]
+		if command.Type != MsgTypeString {
+			p.WriteErr("El comando debe ser un string")
+			break
+		}
+
+		commandStr := strings.ToUpper(command.Value.(string))
+		fmt.Printf("Comando %s recibido\n", commandStr)
+
+		switch commandStr {
+		case PingCommand:
+			p.WriteMsg(NewMessage(MsgTypeString, "PONG"))
+		default:
+			p.WriteErr(fmt.Sprintf("Comando %s desconocido", commandStr))
 		}
 	}
+}
+
+func (p *Peer) WriteMsg(msg Message) {
+	respMsgBuf, _ := EncodeMsg(msg)
+	p.conn.Write(respMsgBuf)
+}
+
+func (p *Peer) WriteErr(err string) {
+	msg := NewMessage(MsgTypeError, err)
+	msgBuf, _ := EncodeMsg(msg)
+	p.conn.Write(msgBuf)
 }
 
 func NewPeer(conn net.Conn, state *ServerState) *Peer {

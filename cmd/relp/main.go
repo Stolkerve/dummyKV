@@ -18,18 +18,19 @@ func main() {
 		log.Panicln(err)
 	}
 
-	msg := internal.NewMessage(internal.MsgTypeArray, []internal.Message{
+	// Enviar lista de argumentos al servidor
+	argsMsg := internal.NewMessage(internal.MsgTypeArray, []internal.Message{
 		internal.NewMessage(internal.MsgTypeString, "PING"),
 	})
-
-	msgBuf, err := internal.EncodeMsg(msg)
+	argsMsgBuf, err := internal.EncodeMsg(argsMsg)
 	if err != nil {
 		log.Panicln(err.Error())
 	}
-	if _, err := conn.Write(msgBuf); err != nil {
+	if _, err := conn.Write(argsMsgBuf); err != nil {
 		log.Panicln(err.Error())
 	}
 
+	// Leer la respuesta del servidor
 	payloadSizeBuf := []byte{0, 0}
 	if _, err := conn.Read(payloadSizeBuf); err != nil {
 		log.Panicln(err.Error())
@@ -41,5 +42,11 @@ func main() {
 	}
 	respMsg, _ := internal.DecodeMsg(bytes.NewBuffer(respMsgBuf))
 
-	fmt.Println(respMsg)
+	// Imprimir la respuesta
+	switch respMsg.Type {
+	case internal.MsgTypeString:
+		fmt.Println(respMsg.Value.(string))
+	case internal.MsgTypeError:
+		fmt.Printf("ERROR: %s\n", respMsg.Value.(string))
+	}
 }

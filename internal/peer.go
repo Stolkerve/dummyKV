@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"net"
 )
@@ -19,7 +18,8 @@ func (p *Peer) Start() {
 			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())
 			break
 		}
-		payloadSize := binary.LittleEndian.Uint16(payloadSizeBuf)
+
+		payloadSize := uint16(payloadSizeBuf[0]) | uint16(payloadSizeBuf[0])<<8
 		msgBuf := make([]byte, payloadSize)
 		if _, err := p.conn.Read(msgBuf); err != nil {
 			fmt.Printf("Conexion de peer %s cerrada\n", p.conn.RemoteAddr().String())

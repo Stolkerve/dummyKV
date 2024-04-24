@@ -2,7 +2,6 @@ package internal
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/gob"
 	"log"
 	"math"
@@ -53,14 +52,15 @@ func EncodeMsg(m Message) ([]byte, error) {
 		log.Panic("MSG demasiado largo")
 	}
 
-	msgSizeBuf := []byte{0, 0}
-	binary.LittleEndian.PutUint16(msgSizeBuf, uint16(len(payloadBytes)))
+	size := uint16(len(payloadBytes))
+	msgSizeBuf := []byte{
+		byte(size), byte(size >> 8),
+	}
 
 	// msgBuf
 	// -> 0xff, 0xff,  0x01, ..., ..., ...
 	// [  Longitud  ] [tipo] [    data    ]
 	//                [      mensaje      ]
-
 	var msgBuf bytes.Buffer
 	msgBuf.Write(msgSizeBuf)
 	msgBuf.Write(payloadBytes)

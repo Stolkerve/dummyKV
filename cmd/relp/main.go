@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/Stolkerve/dummyKV/internal"
+	"github.com/urfave/cli/v2"
 )
 
 func SendArgs(conn net.Conn, cliArgs []string) {
@@ -56,22 +57,50 @@ func SendArgs(conn net.Conn, cliArgs []string) {
 func main() {
 	gob.Register([]internal.Message{})
 
-	conn, err := net.Dial("tcp", "127.0.0.1:8000")
-	if err != nil {
-		log.Panicln(err)
+	app := &cli.App{
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "port",
+				Value:   "8000",
+				Usage:   "Set the server port",
+				Aliases: []string{"p"},
+			},
+			&cli.StringFlag{
+				Name:    "address",
+				Value:   "0.0.0.0",
+				Usage:   "Set the server address",
+				Aliases: []string{"addr"},
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+			var port, address string
+			port = ctx.String("port")
+			address = ctx.String("address")
+
+			conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", address, port))
+			if err != nil {
+				log.Panicln(err)
+			}
+
+			cliArgs := os.Args[1:]
+
+			// RELP mode
+			if len(cliArgs) == 0 {
+				scanner := bufio.NewScanner(os.Stdin)
+				for {
+					fmt.Print("> ")
+					scanner.Scan()
+					SendArgs(conn, strings.Fields(scanner.Text()))
+				}
+			} else {
+				SendArgs(conn, cliArgs)
+			}
+
+			return nil
+		},
 	}
 
-	cliArgs := os.Args[1:]
-
-	// RELP mode
-	if len(cliArgs) == 0 {
-		scanner := bufio.NewScanner(os.Stdin)
-		for {
-			fmt.Print("> ")
-			scanner.Scan()
-			SendArgs(conn, strings.Fields(scanner.Text()))
-		}
-	} else {
-		SendArgs(conn, cliArgs)
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
 	}
 }

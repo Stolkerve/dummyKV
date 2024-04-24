@@ -13,8 +13,6 @@ import (
 func main() {
 	gob.Register([]internal.Message{})
 
-	var port, address string
-
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -31,6 +29,7 @@ func main() {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			var port, address string
 			port = ctx.String("port")
 			address = ctx.String("address")
 

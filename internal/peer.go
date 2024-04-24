@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/Stolkerve/dummyKV/cache"
 )
 
 type Peer struct {
 	conn  net.Conn
-	state *ServerState
+	cache *cache.Cache
 }
 
 func (p *Peer) Start() {
@@ -81,7 +83,12 @@ func (p *Peer) Start() {
 				p.WriteErr("La llave debe ser un string")
 				return
 			}
-			p.WriteMsg(NewMessage(MsgTypeNull, nil))
+			v, ok := p.cache.Get(key.Value.(string))
+			if !ok {
+				p.WriteMsg(NewMessage(MsgTypeNull, nil))
+				return
+			}
+			p.WriteMsg(NewMessage(MsgTypeString, v))
 
 		case SetCommand:
 			key, err := argsIter.Next()
@@ -98,7 +105,7 @@ func (p *Peer) Start() {
 				p.WriteErr("El segundo comando espera un argumento")
 				return
 			}
-			fmt.Printf("Llave: %s. Valor: %v\n", key.Value.(string), value.Value)
+			p.cache.Set(key.Value.(string), value.Value, cache.NO_EXPIRATION)
 			p.WriteMsg(NewMessage(MsgTypeString, "OK"))
 
 		default:
@@ -118,10 +125,10 @@ func (p *Peer) WriteErr(err string) {
 	p.conn.Write(msgBuf)
 }
 
-func NewPeer(conn net.Conn, state *ServerState) *Peer {
+func NewPeer(conn net.Conn, cache *cache.Cache) *Peer {
 	peer := Peer{
 		conn:  conn,
-		state: state,
+		cache: cache,
 	}
 
 	return &peer

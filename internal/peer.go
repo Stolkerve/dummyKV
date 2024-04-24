@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Stolkerve/dummyKV/cache"
 )
@@ -105,7 +107,20 @@ func (p *Peer) Start() {
 				p.WriteErr("El segundo comando espera un argumento")
 				return
 			}
-			p.cache.Set(key.Value.(string), value.Value, cache.NO_EXPIRATION)
+
+			expiration := cache.NO_EXPIRATION
+			if expValue, err := argsIter.Next(); err == nil {
+				if expValue.Type == MsgTypeString {
+					milli, err := strconv.ParseInt(expValue.Value.(string), 10, 64)
+					if err != nil {
+						p.WriteErr("Duracion no es numero valido")
+						return
+					}
+					expiration = time.Duration(milli) * time.Millisecond
+				}
+			}
+
+			p.cache.Set(key.Value.(string), value.Value, expiration)
 			p.WriteMsg(NewMessage(MsgTypeString, "OK"))
 
 		default:

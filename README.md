@@ -27,7 +27,7 @@ El servidor escucha por defecto en la direccion: 0.0.0.0:8000.
 El cliente ofrece interaccion mediente argumentos que se le pase al ejecutable o un modo interactivo
 #### Como ejecutarlo
 1) compilar el programa con el comando
-`go build -o relp cmd/relp/main.go`
-2) Ver las opciones con el comando `relp --help`
+`go build -o REPL cmd/REPL/main.go`
+2) Ver las opciones con el comando `REPL --help`
 2) Ejecutarlo en modo interactivo con el comando
-`relp`
+`REPL`
